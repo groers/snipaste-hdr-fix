@@ -1,0 +1,7 @@
+# 次抛文件
+_scratch/
+*.bak
+*.old
+*.new
+__pycache__/
+*.pyc

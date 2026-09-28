@@ -1,0 +1,27 @@
+# Attribution / 署名
+
+## Upstream shader
+
+`tonemapper.hlsl` in this repository is a **modified copy** of the shader from:
+
+- **GEEKiDoS/bitblt-hdr** — https://github.com/GEEKiDoS/bitblt-hdr
+- License: MIT
+
+Changes made: two constants — `linear_tonemap()`'s knee `z` changed from `0.8` to `1.0`,
+and the `step()` threshold in `main()` changed from `0.8` to `1.0`.
+Nothing else in the file was touched (line endings and formatting preserved).
+
+Snipaste v2.11 and later embed this upstream shader; this tool recompiles the modified
+version and replaces the embedded copy inside `Snipaste.exe`.
+
+## Trademarks / affiliation
+
+- **Snipaste** is a product of its respective author(s). This project is **unofficial**
+  and not affiliated with or endorsed by the Snipaste project.
+- **bitblt-hdr** is © GEEKiDoS, used under the MIT License.
+
+## Disclaimer
+
+This tool modifies a third-party executable on your own machine, for personal use.
+It creates a backup before writing and can roll back with a single command, but you
+use it at your own risk.
