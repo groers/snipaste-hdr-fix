@@ -31,6 +31,10 @@ OLD_CONST = 0x3F4CCCCD  # 0.8f —— 旧拐点
 NEW_CONST = 0x3F800000  # 1.0f —— SDR 白点
 EXPECTED_OLD_COUNT = 7  # 旧着色器里 0.8f 的出现次数（2 组 float3 + 1 个标量）
 
+# tonemapper.hlsl 的特征常量（Khronos neutral 映射的 0.76 / 0.15，以及 1/d = 0.4）。
+# 三者齐全才认定"这是我们认识的那版 tonemapper"，避免在未来版本上误替换成旧着色器。
+SIGNATURE = {"0.76": 0x3F428F5C, "0.15": 0x3E19999A, "0.40": 0x3ECCCCCD}
+
 
 # ----------------------------------------------------------------------------
 # 基础工具
@@ -135,17 +139,22 @@ def count_old_const(blob):
     return blob.count(struct.pack("<I", OLD_CONST))
 
 
+def signature_ok(blob):
+    return all(struct.pack("<I", v) in blob for v in SIGNATURE.values())
+
+
 def analyze(exe_path):
     with open(exe_path, "rb") as f:
         data = bytearray(f.read())
     hits = find_shader_resource(data)
     if not hits:
-        raise SystemExit("在 exe 里找不到内嵌的 DXBC 着色器资源（版本可能不受支持）")
+        raise SystemExit("在 exe 里找不到内嵌的 DXBC 着色器资源（Snipaste 2.10.x 及更早版本没有这个功能）")
     path, off, size, de = hits[0]
     blob = bytes(data[off:off + size])
     accepted, hr = create_compute_shader(blob)
     n_old = count_old_const(blob)
-    if accepted is True and n_old == EXPECTED_OLD_COUNT:
+    sig = signature_ok(blob)
+    if accepted is True and n_old == EXPECTED_OLD_COUNT and sig:
         state = "original"
     elif accepted is True and n_old == 0:
         state = "fixed"
@@ -153,7 +162,7 @@ def analyze(exe_path):
         state = "broken"
     else:
         state = "unknown"
-    return data, (path, off, size, de), state, accepted, hr, n_old
+    return data, (path, off, size, de), state, accepted, hr, n_old, sig
 
 
 # ----------------------------------------------------------------------------
@@ -225,17 +234,18 @@ def cmd_check(args):
     exe = os.path.join(args.dir, "Snipaste.exe")
     if not os.path.isfile(exe):
         raise SystemExit(f"没找到 {exe}（用 --dir 指定 Snipaste 目录）")
-    data, (path, off, size, de), state, accepted, hr, n_old = analyze(exe)
+    data, (path, off, size, de), state, accepted, hr, n_old, sig = analyze(exe)
     say(f"Snipaste 目录 : {args.dir}")
     say(f"exe 大小      : {len(data)} 字节")
     say(f"着色器资源    : 资源路径 {path}  偏移 {hex(off)}  声明长度 {size}")
     say(f"D3D11 校验    : {'通过' if accepted else '失败'} (hr=0x{hr:08X})" if accepted is not None
         else "D3D11 校验    : 跳过（无法创建 D3D 设备）")
     say(f"旧拐点常量    : {n_old} 处 (期望旧版 {EXPECTED_OLD_COUNT} 处)")
+    say(f"tonemapper 指纹: {'匹配' if sig else '不匹配'}")
     label = {"original": "未修复（原版着色器，拐点 0.8 → 白场会被压到 224）",
              "fixed": "已修复（拐点 1.0，白场正常）",
              "broken": "异常（着色器被直接改过字节，D3D11 拒绝加载 → 功能会变灰，请执行 patch 覆盖）",
-             "unknown": "未知（请把输出反馈给作者）"}[state]
+             "unknown": "未知版本（结构或常量与已知版本不一致）—— 请勿 patch，先反馈给作者"}[state]
     say(f"当前状态      : {state} —— {label}")
     return 0
 
@@ -244,10 +254,16 @@ def cmd_patch(args):
     exe = os.path.join(args.dir, "Snipaste.exe")
     if not os.path.isfile(exe):
         raise SystemExit(f"没找到 {exe}（用 --dir 指定 Snipaste 目录）")
-    data, (path, off, size, de), state, accepted, hr, n_old = analyze(exe)
+    data, (path, off, size, de), state, accepted, hr, n_old, sig = analyze(exe)
     if state == "fixed":
         say("已经是修复后的状态，无需重复操作。")
         return 0
+    if state == "unknown":
+        say("")
+        say("已拒绝替换：当前着色器结构或常量与已知版本不一致。")
+        say("  · 若你的 Snipaste 不是 2.11.x 桌面版（例如微软商店版、或尚未支持的未来版本），本工具不适用；")
+        say("  · 若确实是 2.11.x，请把上面 `check` 的完整输出反馈给作者，不要强行替换。")
+        return 3
     hlsl = find_hlsl(os.path.dirname(os.path.abspath(__file__)), args.hlsl)
     say(f"使用着色器    : {hlsl}")
     blob = compile_fixed_shader(args.dir, hlsl)

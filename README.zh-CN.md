@@ -25,6 +25,17 @@ Windows 开启 HDR 后，Snipaste 2.11.x 的两种设置**都不对**：
 
 视觉对比见 `docs/comparison.png`。
 
+**为什么两张照片看起来几乎一样**：差异只影响亮度的最顶端——该样张里 **75% 的像素逐位相同**
+（上表 p5 ~ 中位 = ±0）。它在**平坦的白底 / 浅色界面**上一眼可见（白 254 → 224，即
+#FEFEFE 与 #E0E0E0 之差，观感就是"整体发灰、文字对比度下降"），而在照片的平滑高光渐变里
+几乎看不出——因为人眼对绝对亮度没有参照。
+
+两个更直观的看法：
+
+- **[`docs/comparison-split.png`](docs/comparison-split.png)**：同一张照片沿一条接缝一分为二，
+  左侧 = 原图，右侧 = **同一批像素**经着色器公式换算后的结果。天空处可见台阶，图内附 3.9× 放大窗
+- **[`docs/white-level.png`](docs/white-level.png)**：254 与 224 的平色块对照
+
 ## 根本原因
 
 Snipaste v2.11 起内置了 [GEEKiDoS/bitblt-hdr](https://github.com/GEEKiDoS/bitblt-hdr) 的
@@ -67,12 +78,27 @@ SDR 内容（≤ 1.0）因此**原样通过**，只有超过 SDR 白点的部分
 D3D11 拒绝加载（`hr=0x80070057`），Snipaste 随即判定功能不可用、**选项变灰**。
 所以本工具是**重新编译着色器**，让编译器自己生成正确的哈希。
 
-## 运行要求
+## 运行要求与版本兼容性
 
-- Windows x64
-- Snipaste **2.11.x** 桌面版（即内置 HDR 校正的那一版）
-- Python 3.8+
-- **不需要 C++ 编译器** —— 着色器用 Snipaste 目录里自带的 `d3dcompiler_47.dll` 编译
+| 项目 | 要求 |
+|---|---|
+| 系统 | Windows 10 / 11，**x64**（HDR 本身还需 Windows 10 1809+ 且显示器支持 HDR） |
+| Snipaste | **2.11.x 桌面版**——**仅实测过 2.11.3** |
+| Python | 3.8+（只用标准库，无需 pip 安装任何包） |
+| 编译器 | **不需要**——着色器用 Snipaste 目录里自带的 `d3dcompiler_47.dll` 编译 |
+
+不支持 / 未验证的情况：
+
+| 情况 | 结果 |
+|---|---|
+| **微软商店版** | **不支持**。它的文件在 `Program Files\WindowsApps` 受保护目录里，且商店会自动更新——补丁要么写不进去、要么被静默覆盖。请用桌面版。 |
+| Snipaste ≤ 2.10.x | 那一版还没有内置 HDR 校正；工具会报"找不到 DXBC 着色器资源"并中止。 |
+| 32 位 Snipaste | **未测试**——PE 解析器能处理 PE32，但所有验证都只在 x64 上做过。 |
+| 显示器接在不同显卡上 | 不支持——上游库本身就不处理多 GPU 场景。 |
+| 未来重写了着色器的新版本 | **先跑 `check`**。若状态显示 `unknown`（指纹不匹配），工具会**拒绝替换**；否则会把旧着色器覆盖到新逻辑上。 |
+
+> 通用原则：凡不在上表"已实测"范围内的版本，**先 `check` 再决定要不要 `patch`**；
+> 若 `check` 报 `unknown`，停手并反馈，不要强行替换。
 
 ## 使用方法
 
@@ -111,6 +137,17 @@ python snipaste_hdr_fix.py check --dir "D:\Snipaste"
 - 着色器衍生自 **[GEEKiDoS/bitblt-hdr](https://github.com/GEEKiDoS/bitblt-hdr)**（MIT），详见 [NOTICE](NOTICE)
 - Snipaste — <https://www.snipaste.com/>
 
+## 法律说明
+
+- 本仓库发布的是**工具，不是改好的程序**——它修改的是**你机器上已有的那份** Snipaste 副本；
+  你需要自己拥有合法副本才能使用。
+- **本仓库不含任何 Snipaste 二进制、资源或源码。** Snipaste 的 EULA 也禁止再分发其软件，
+  请不要把 Snipaste 的文件加进本仓库。
+- Snipaste 的最终用户许可协议**禁止对其软件进行修改 / 反向工程 / 反编译**；运行本工具即意味着
+  修改你自己的那份副本，这属于该协议限制的行为——请自行判断是否可接受。详见 [NOTICE](NOTICE)。
+- 与 Snipaste 官方无隶属关系；**不涉及任何授权、DRM 或付费功能的绕过**。
+
 ## 许可
 
-MIT，见 [LICENSE](LICENSE)。
+MIT，见 [LICENSE](LICENSE)。上游着色器署名见 [NOTICE](NOTICE) 与
+[LICENSE-bitblt-hdr](LICENSE-bitblt-hdr)。

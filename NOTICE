@@ -1,26 +1,41 @@
 # Attribution / 署名
 
-## Upstream shader
+## 1. Upstream shader (MIT) — required notice
 
-`tonemapper.hlsl` in this repository is a **modified copy** of the shader from:
+`tonemapper.hlsl` in this repository is a **modified copy** of the shader from
+**GEEKiDoS/bitblt-hdr** (https://github.com/GEEKiDoS/bitblt-hdr):
 
-- **GEEKiDoS/bitblt-hdr** — https://github.com/GEEKiDoS/bitblt-hdr
-- License: MIT
+- Copyright 2025 GEEKiDoS
+- License: MIT — the full license text is included in [`LICENSE-bitblt-hdr`](LICENSE-bitblt-hdr)
+- Changes made by this project: two constants — `linear_tonemap()`'s knee `z`
+  changed from `0.8` to `1.0`, and the `step()` threshold in `main()` changed from
+  `0.8` to `1.0`. Nothing else was modified (line endings and formatting preserved).
 
-Changes made: two constants — `linear_tonemap()`'s knee `z` changed from `0.8` to `1.0`,
-and the `step()` threshold in `main()` changed from `0.8` to `1.0`.
-Nothing else in the file was touched (line endings and formatting preserved).
+Snipaste v2.11 and later embed this upstream shader; this tool recompiles the
+modified version and replaces the embedded copy inside `Snipaste.exe` **on your own machine**.
 
-Snipaste v2.11 and later embed this upstream shader; this tool recompiles the modified
-version and replaces the embedded copy inside `Snipaste.exe`.
-
-## Trademarks / affiliation
+## 2. Trademarks / affiliation
 
 - **Snipaste** is a product of its respective author(s). This project is **unofficial**
-  and not affiliated with or endorsed by the Snipaste project.
-- **bitblt-hdr** is © GEEKiDoS, used under the MIT License.
+  and is not affiliated with, endorsed by, or supported by the Snipaste project.
+- **bitblt-hdr** is © 2025 GEEKiDoS, used under the MIT License.
+- No Snipaste binary, asset or source code is redistributed by this repository.
 
-## Disclaimer
+## 3. Legal notes / 法律说明
+
+- This repository ships **a tool, not a patched application**. It modifies a copy of
+  Snipaste that already exists on your machine; you need your own legitimate copy to use it.
+- **Snipaste's End User License Agreement prohibits modifying, reverse engineering,
+  decompiling or disassembling the software** (see https://zh.snipaste.com/eula.html).
+  Running this tool therefore means modifying your own copy, which that agreement
+  restricts. Judge for yourself whether that is acceptable in your situation and
+  jurisdiction — the authors of this tool take no position and accept no liability.
+- Snipaste's EULA also prohibits redistributing the software. This repository does not
+  distribute Snipaste in any form — **do not add Snipaste binaries to it**.
+- The tool does not circumvent any licensing, DRM or paid-feature restriction; it only
+  changes the color mapping of screenshots.
+
+## 4. Disclaimer
 
 This tool modifies a third-party executable on your own machine, for personal use.
 It creates a backup before writing and can roll back with a single command, but you
